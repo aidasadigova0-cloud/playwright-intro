@@ -1,93 +1,66 @@
-/// here will be tests for todo app using playwright
-
-import {expect, Locator, test} from "@playwright/test";
+import {expect, test} from "@playwright/test";
+import {TodoPage} from "./TodoPage";
 
 const URL = 'https://todo-app.tallinn-learning.ee/';
-test.only('create a task', async ({ page }) => {
 
-    await page.goto(URL)
+let todoPage: TodoPage;
 
-    const todoInput: Locator = page.getByTestId('text-input')
-    await todoInput.fill('my first task')
-    await todoInput.press("Enter")
-
-    const todoTask: Locator = page.getByTestId('todo-item-label')
-    // now let's verify element is visible
-    await expect(todoTask).toBeVisible()
-
+test.beforeEach(async ({ page }) => {
+    await page.goto(URL);
+    todoPage = new TodoPage(page);
 });
 
+test('create a task', async ({ page }) => {
+    await todoPage.todoInput.fill('my first task');
+    await todoPage.todoInput.press('Enter');
 
-
-
-
-test.only('create a two  task and valitade filter', async ({ page }) => {
-
-    await page.goto(URL)
-//task one
-    const todoInput: Locator = page.getByTestId('text-input')
-    await todoInput.fill('my first task')
-    await todoInput.press("Enter")
-//task two
-    await todoInput.fill('my first task')
-    await todoInput.press("Enter")
-
-
-
-   //check that we have 2 items (task)
-    const todoTask: Locator = page.getByTestId('todo-item-label').first()
-    // now let's verify element is visible
-    await expect(todoTask).toBeVisible()
-
+    await expect(todoPage.todoItemLabel).toBeVisible();
 });
 
-test.only('create a task and mark completed -new', async ({ page }) => {
+test('create two tasks and validate filter', async ({ page }) => {
+    await todoPage.todoInput.fill('my first task');
+    await todoPage.todoInput.press('Enter');
 
-    await page.goto(URL)
-// task one
-    const todoInput: Locator = page.getByTestId('text-input');
-    await todoInput.fill('my first task');
-    await todoInput.press('Enter');
+    await todoPage.todoInput.fill('my second task');
+    await todoPage.todoInput.press('Enter');
 
-// element for task activation - toggle
-    const toggle: Locator = page.getByTestId('todo-item-toggle');
-
-// activate task
-    await toggle.click();
-
-// check task is visible
-    const todoTask: Locator = page.getByTestId('todo-item-label').first();
-    await expect(todoTask).toBeVisible();
-
-// link for completed task
-    const completedLink: Locator = page.getByRole('link', {name: 'completed'});
-    await completedLink.click();
-
-// verify task count after filtering completed
-    await expect(page.getByTestId('todo-item-label')).toHaveCount(1);
-    // completed task is not visible as active
-    const activeLink: Locator = page.getByRole('link', {name: 'active'});
-    await activeLink.click();
-    await expect(page.getByTestId('todo-item-label')).toHaveCount(0);
-    // button to clear completed
-    const clearBtn: Locator = page.getByRole('button', {name: 'clear completed'});
-    await clearBtn.click();
-    await expect(page.getByTestId('todo-item-label')).toHaveCount(0);
+    await expect(todoPage.todoItemLabel.first()).toBeVisible();
 });
 
-test.only('create a task and mark completed', async ({ page }) => {
+test('create a task and mark completed - new', async ({ page }) => {
+    await todoPage.todoInput.fill('my first task');
+    await todoPage.todoInput.press('Enter');
 
-    await page.goto(URL)
-// task one
-    const todoInput: Locator = page.getByTestId('text-input');
-    await todoInput.fill('my first task');
-    await todoInput.press('Enter');
+    await todoPage.toggle.click();
 
-    //double click to rename item
-    const todotask: Locator = page.getByTestId('todo-item-label');
-    await todotask.dblclick();
-    await page.getByTestId('todo-item').getByTestId('text-input').fill('my first updated');
+    await expect(todoPage.todoItemLabel.first()).toBeVisible();
+
+    await todoPage.completedLink.click();
+    await expect(todoPage.todoItemLabel).toHaveCount(1);
+
+    await todoPage.activeLink.click();
+    await expect(todoPage.todoItemLabel).toHaveCount(0);
+
+    await todoPage.clearBtn.click();
+    await expect(todoPage.todoItemLabel).toHaveCount(0);
+});
+
+test('create a task and rename it', async ({ page }) => {
+    const taskName = 'my first task';
+    const updatedTaskName = 'my first task updated';
+
+    await todoPage.todoInput.fill(taskName);
+    await todoPage.todoInput.press('Enter');
+
+    let text: string = await todoPage.todoItemLabel.textContent();
+    console.log(text);
+
+    await todoPage.todoItemLabel.dblclick();
+    await page.getByTestId('todo-item').getByTestId('text-input').fill(updatedTaskName);
     await page.getByTestId('todo-item').getByTestId('text-input').press('Enter');
 
-    await todotask.press('Enter');
+    text = await todoPage.todoItemLabel.textContent();
+    console.log(text);
+
+    expect(text).toBe(updatedTaskName);
 });
